@@ -8,43 +8,47 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
             background: linear-gradient(135deg, #e0f7fa, #80deea);
             color: #004d40;
         }
         .container {
-            max-width: 900px;
+            width: 100%;
+            max-width: 1200px;
             margin: auto;
+            padding: 10px;
+        }
+        h1 {
             text-align: center;
-            background: #ffffff;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            border-radius: 8px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            display: block;
         }
         th, td {
             border: 1px solid #ccc;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
+            font-size: 14px;
         }
         th {
             background-color: #004d40;
             color: white;
         }
         button {
-            background-color: #004d40;
+            display: inline-block;
+            margin: 10px 5px;
+            padding: 10px 15px;
+            font-size: 16px;
             color: white;
+            background-color: #004d40;
             border: none;
-            padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
-            margin: 5px;
         }
         button:hover {
             background-color: #00695c;
@@ -52,34 +56,26 @@
         .chart-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-around;
+            gap: 20px;
+            justify-content: center;
             margin-top: 20px;
         }
         .chart-container canvas {
-            max-width: 100%;
-            height: auto;
-        }
-        .section {
-            margin-bottom: 40px;
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
         }
         @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
             th, td {
-                padding: 5px;
                 font-size: 12px;
             }
             button {
                 font-size: 14px;
-                padding: 8px 16px;
-            }
-            .chart-container {
-                flex-direction: column;
-                align-items: center;
+                padding: 8px 12px;
             }
             .chart-container canvas {
                 max-width: 90%;
+                height: auto;
             }
         }
     </style>
@@ -87,9 +83,10 @@
 <body>
     <div class="container">
         <h1>Śledzenie Wyników Squasha</h1>
-        <form id="dateForm">
+        <form>
             <label for="date">Data:</label>
-            <input type="date" id="date" required>
+            <input type="date" id="date">
+            <button type="button" id="addRowButton">Dodaj Wiersz</button>
         </form>
 
         <table id="resultsTable">
@@ -105,100 +102,43 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Wiersze będą dodawane dynamicznie -->
+                <!-- Dynamic rows -->
             </tbody>
         </table>
 
-        <button id="addRowButton">Dodaj Wiersz</button>
-        <button id="refreshButton">Odśwież Tabelę</button>
+        <button id="refreshButton">Odśwież Wykresy</button>
 
-        <!-- Sekcja Punkty -->
-        <div class="section">
-            <h2>Punkty</h2>
-            <div class="chart-container">
-                <canvas id="pointsChart" width="400" height="200"></canvas>
-                <canvas id="cumulativePointsChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Sekcja Sety -->
-        <div class="section">
-            <h2>Sety</h2>
-            <div class="chart-container">
-                <canvas id="setsChart" width="400" height="200"></canvas>
-                <canvas id="cumulativeSetsChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Sekcja Mecze -->
-        <div class="section">
-            <h2>Mecze</h2>
-            <div class="chart-container">
-                <canvas id="matchesChart" width="400" height="200"></canvas>
-                <canvas id="cumulativeMatchesChart" width="400" height="200"></canvas>
-            </div>
+        <div class="chart-container">
+            <canvas id="pointsChart"></canvas>
+            <canvas id="cumulativePointsChart"></canvas>
+            <canvas id="setsChart"></canvas>
+            <canvas id="cumulativeSetsChart"></canvas>
+            <canvas id="matchesChart"></canvas>
+            <canvas id="cumulativeMatchesChart"></canvas>
         </div>
     </div>
 
     <script>
         const resultsData = {
-            Rafał: {
-                points: [],
-                sets: [],
-                matches: []
-            },
-            Bartek: {
-                points: [],
-                sets: [],
-                matches: []
-            }
+            Rafał: { points: [], sets: [], matches: [] },
+            Bartek: { points: [], sets: [], matches: [] }
         };
 
-        const cumulativeResultsData = {
-            Rafał: {
-                points: [],
-                sets: [],
-                matches: []
-            },
-            Bartek: {
-                points: [],
-                sets: [],
-                matches: []
-            }
-        };
+        const chartInstances = {};
 
-        const chartConfig = {
-            Rafał: {
-                color: 'blue',
-                backgroundColor: 'rgba(0, 0, 255, 0.1)'
-            },
-            Bartek: {
-                color: 'red',
-                backgroundColor: 'rgba(255, 0, 0, 0.1)'
-            }
-        };
-
-        const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
-        const addRowButton = document.getElementById('addRowButton');
-        const refreshButton = document.getElementById('refreshButton');
-        const dateInput = document.getElementById('date');
-
-        addRowButton.addEventListener('click', () => {
-            const date = dateInput.value;
+        document.getElementById('addRowButton').addEventListener('click', () => {
+            const date = document.getElementById('date').value;
             if (!date) {
                 alert('Proszę wybrać datę.');
                 return;
             }
-
-            const row = createRow(date);
-            resultsTable.appendChild(row);
+            addRow(date);
         });
 
-        refreshButton.addEventListener('click', () => {
-            updateCharts();
-        });
+        document.getElementById('refreshButton').addEventListener('click', updateCharts);
 
-        function createRow(date) {
+        function addRow(date) {
+            const table = document.getElementById('resultsTable').querySelector('tbody');
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${date}</td>
@@ -209,114 +149,67 @@
                 <td contenteditable="true">0</td>
                 <td contenteditable="true">0</td>
             `;
-            return row;
+            table.appendChild(row);
         }
 
         function updateCharts() {
-            resetData();
-            const rows = Array.from(resultsTable.querySelectorAll('tr'));
+            const tableRows = document.querySelectorAll('#resultsTable tbody tr');
             const labels = [];
+            const data = { Rafał: { points: [], sets: [], matches: [] }, Bartek: { points: [], sets: [], matches: [] } };
 
-            rows.forEach(row => {
+            tableRows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                if (cells.length > 1) {
-                    const date = cells[0].textContent.trim();
-                    labels.push(date);
+                const date = cells[0].textContent;
+                labels.push(date);
 
-                    updatePlayerData(cells, 'Rafał', 1);
-                    updatePlayerData(cells, 'Bartek', 2);
-                }
+                ['points', 'sets', 'matches'].forEach((category, i) => {
+                    data.Rafał[category].push(parseInt(cells[1 + i * 2].textContent) || 0);
+                    data.Bartek[category].push(parseInt(cells[2 + i * 2].textContent) || 0);
+                });
             });
 
-            updateChart(pointsChart, resultsData, 'points', labels);
-            updateChart(cumulativePointsChart, cumulativeResultsData, 'points', labels);
-            updateChart(setsChart, resultsData, 'sets', labels);
-            updateChart(cumulativeSetsChart, cumulativeResultsData, 'sets', labels);
-            updateChart(matchesChart, resultsData, 'matches', labels);
-            updateChart(cumulativeMatchesChart, cumulativeResultsData, 'matches', labels);
-        }
-
-        function updatePlayerData(cells, player, offset) {
-            const categories = ['points', 'sets', 'matches'];
-            categories.forEach((category, index) => {
-                const value = parseInt(cells[offset + index * 2].textContent.trim()) || 0;
-                resultsData[player][category].push(value);
-                updateCumulativeData(category, value, player);
+            Object.keys(chartInstances).forEach(chartId => {
+                const [player, category] = chartId.split('-');
+                chartInstances[chartId].data.labels = labels;
+                chartInstances[chartId].data.datasets[0].data = data[player][category];
+                chartInstances[chartId].update();
             });
         }
 
-        function resetData() {
-            for (let player in resultsData) {
-                for (let category in resultsData[player]) {
-                    resultsData[player][category] = [];
-                    cumulativeResultsData[player][category] = [];
-                }
-            }
-        }
-
-        function updateCumulativeData(category, value, player) {
-            const previousValue = cumulativeResultsData[player][category].slice(-1)[0] || 0;
-            cumulativeResultsData[player][category].push(previousValue + value);
-        }
-
-        function updateChart(chart, dataObj, category, labels) {
-            const maxValue = Math.max(...Object.values(dataObj).flatMap(playerData => playerData[category]));
-            chart.options.scales.y.max = maxValue * 2;
-            chart.data.labels = labels;
-            chart.data.datasets.forEach(dataset => {
-                dataset.data = dataObj[dataset.label][category];
-            });
-            chart.update();
-        }
-
-        const pointsCtx = document.getElementById('pointsChart').getContext('2d');
-        const cumulativePointsCtx = document.getElementById('cumulativePointsChart').getContext('2d');
-        const setsCtx = document.getElementById('setsChart').getContext('2d');
-        const cumulativeSetsCtx = document.getElementById('cumulativeSetsChart').getContext('2d');
-        const matchesCtx = document.getElementById('matchesChart').getContext('2d');
-        const cumulativeMatchesCtx = document.getElementById('cumulativeMatchesChart').getContext('2d');
-
-        const pointsChart = createChart(pointsCtx, resultsData, 'Punkty', 'points');
-        const cumulativePointsChart = createChart(cumulativePointsCtx, cumulativeResultsData, 'Punkty (Narastająco)', 'points');
-        const setsChart = createChart(setsCtx, resultsData, 'Sety', 'sets');
-        const cumulativeSetsChart = createChart(cumulativeSetsCtx, cumulativeResultsData, 'Sety (Narastająco)', 'sets');
-        const matchesChart = createChart(matchesCtx, resultsData, 'Mecze', 'matches');
-        const cumulativeMatchesChart = createChart(cumulativeMatchesCtx, cumulativeResultsData, 'Mecze (Narastająco)', 'matches');
-
-        function createChart(ctx, dataObj, label, category) {
-            return new Chart(ctx, {
+        function createChart(id, label, player, category) {
+            const ctx = document.getElementById(id).getContext('2d');
+            chartInstances[`${player}-${category}`] = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: [], // Dynamically updated
-                    datasets: Object.keys(dataObj).map(player => ({
-                        label: player,
-                        data: dataObj[player][category],
-                        borderColor: chartConfig[player].color,
-                        backgroundColor: chartConfig[player].backgroundColor,
-                        borderWidth: 2,
-                    }))
+                    labels: [],
+                    datasets: [{
+                        label: `${player} - ${label}`,
+                        data: [],
+                        borderColor: player === 'Rafał' ? 'blue' : 'red',
+                        backgroundColor: player === 'Rafał' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)',
+                        borderWidth: 2
+                    }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
                     scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Wpisy'
-                            }
-                        },
                         y: {
                             beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: label
-                            },
-                            max: 10 // Placeholder, dynamically updated
+                            suggestedMax: 10
                         }
                     }
                 }
             });
+        }
+
+        ['points', 'sets', 'matches'].forEach(category => {
+            createChart(`${category}Chart`, category, 'Rafał', category);
+            createChart(`cumulative${capitalize(category)}Chart`, `Cumulative ${category}`, 'Bartek', category);
+        });
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
         }
     </script>
 </body>
