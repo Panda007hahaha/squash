@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyniki Squasha</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e0f7fa, #80deea);
+            color: #004d40;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            text-align: center;
+            background: #ffffff;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #004d40;
+            color: white;
+        }
+        button {
+            background-color: #004d40;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #00695c;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Śledzenie Wyników Squasha</h1>
+        <form id="dateForm">
+            <label for="date">Data:</label>
+            <input type="date" id="date" required>
+        </form>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Punkty Rafał</th>
+                    <th>Punkty Bartek</th>
+                    <th>Sety Rafał</th>
+                    <th>Sety Bartek</th>
+                    <th>Mecze Rafał</th>
+                    <th>Mecze Bartek</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Wiersze będą dodawane dynamicznie -->
+            </tbody>
+        </table>
+
+        <button id="addRowButton">Dodaj Wiersz</button>
+        <button id="refreshButton">Odśwież Tabelę</button>
+
+        <!-- Sekcja Punkty -->
+        <div class="section">
+            <h2>Punkty</h2>
+            <div class="chart-container">
+                <canvas id="pointsChart" width="400" height="200"></canvas>
+                <canvas id="cumulativePointsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Sekcja Sety -->
+        <div class="section">
+            <h2>Sety</h2>
+            <div class="chart-container">
+                <canvas id="setsChart" width="400" height="200"></canvas>
+                <canvas id="cumulativeSetsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Sekcja Mecze -->
+        <div class="section">
+            <h2>Mecze</h2>
+            <div class="chart-container">
+                <canvas id="matchesChart" width="400" height="200"></canvas>
+                <canvas id="cumulativeMatchesChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const resultsData = {
+            Rafał: {
+                points: [],
+                sets: [],
+                matches: []
+            },
+            Bartek: {
+                points: [],
+                sets: [],
+                matches: []
+            }
+        };
+
+        const cumulativeResultsData = {
+            Rafał: {
+                points: [],
+                sets: [],
+                matches: []
+            },
+            Bartek: {
+                points: [],
+                sets: [],
+                matches: []
+            }
+        };
+
+        const chartConfig = {
+            Rafał: {
+                color: 'blue',
+                backgroundColor: 'rgba(0, 0, 255, 0.1)'
+            },
+            Bartek: {
+                color: 'red',
+                backgroundColor: 'rgba(255, 0, 0, 0.1)'
+            }
+        };
+
+        const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
+        const addRowButton = document.getElementById('addRowButton');
+        const refreshButton = document.getElementById('refreshButton');
+        const dateInput = document.getElementById('date');
+
+        addRowButton.addEventListener('click', () => {
+            const date = dateInput.value;
+            if (!date) {
+                alert('Proszę wybrać datę.');
+                return;
+            }
+
+            const row = createRow(date);
+            resultsTable.appendChild(row);
+        });
+
+        refreshButton.addEventListener('click', () => {
+            updateCharts();
+        });
+
+        function createRow(date) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${date}</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+            `;
+            return row;
+        }
+
+        function updateCharts() {
+            resetData();
+            const rows = Array.from(resultsTable.querySelectorAll('tr'));
+            const labels = [];
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 1) {
+                    const date = cells[0].textContent.trim();
+                    labels.push(date);
+
+                    updatePlayerData(cells, 'Rafał', 1);
+                    updatePlayerData(cells, 'Bartek', 2);
+                }
+            });
+
+            updateChart(pointsChart, resultsData, 'points', labels);
+            updateChart(cumulativePointsChart, cumulativeResultsData, 'points', labels);
+            updateChart(setsChart, resultsData, 'sets', labels);
+            updateChart(cumulativeSetsChart, cumulativeResultsData, 'sets', labels);
+            updateChart(matchesChart, resultsData, 'matches', labels);
+            updateChart(cumulativeMatchesChart, cumulativeResultsData, 'matches', labels);
+        }
+
+        function updatePlayerData(cells, player, offset) {
+            const categories = ['points', 'sets', 'matches'];
+            categories.forEach((category, index) => {
+                const value = parseInt(cells[offset + index * 2].textContent.trim()) || 0;
+                resultsData[player][category].push(value);
+                updateCumulativeData(category, value, player);
+            });
+        }
+
+        function resetData() {
+            for (let player in resultsData) {
+                for (let category in resultsData[player]) {
+                    resultsData[player][category] = [];
+                    cumulativeResultsData[player][category] = [];
+                }
+            }
+        }
+
+        function updateCumulativeData(category, value, player) {
+            const previousValue = cumulativeResultsData[player][category].slice(-1)[0] || 0;
+            cumulativeResultsData[player][category].push(previousValue + value);
+        }
+
+        function updateChart(chart, dataObj, category, labels) {
+            const maxValue = Math.max(...Object.values(dataObj).flatMap(playerData => playerData[category]));
+            chart.options.scales.y.max = maxValue * 2;
+            chart.data.labels = labels;
+            chart.data.datasets.forEach(dataset => {
+                dataset.data = dataObj[dataset.label][category];
+            });
+            chart.update();
+        }
+
+        const pointsCtx = document.getElementById('pointsChart').getContext('2d');
+        const cumulativePointsCtx = document.getElementById('cumulativePointsChart').getContext('2d');
+        const setsCtx = document.getElementById('setsChart').getContext('2d');
+        const cumulativeSetsCtx = document.getElementById('cumulativeSetsChart').getContext('2d');
+        const matchesCtx = document.getElementById('matchesChart').getContext('2d');
+        const cumulativeMatchesCtx = document.getElementById('cumulativeMatchesChart').getContext('2d');
+
+        const pointsChart = createChart(pointsCtx, resultsData, 'Punkty', 'points');
+        const cumulativePointsChart = createChart(cumulativePointsCtx, cumulativeResultsData, 'Punkty (Narastająco)', 'points');
+        const setsChart = createChart(setsCtx, resultsData, 'Sety', 'sets');
+        const cumulativeSetsChart = createChart(cumulativeSetsCtx, cumulativeResultsData, 'Sety (Narastająco)', 'sets');
+        const matchesChart = createChart(matchesCtx, resultsData, 'Mecze', 'matches');
+        const cumulativeMatchesChart = createChart(cumulativeMatchesCtx, cumulativeResultsData, 'Mecze (Narastająco)', 'matches');
+
+        function createChart(ctx, dataObj, label, category) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], // Dynamically updated
+                    datasets: Object.keys(dataObj).map(player => ({
+                        label: player,
+                        data: dataObj[player][category],
+                        borderColor: chartConfig[player].color,
+                        backgroundColor: chartConfig[player].backgroundColor,
+                        borderWidth: 2,
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Wpisy'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: label
+                            },
+                            max: 10 // Placeholder, dynamically updated
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
