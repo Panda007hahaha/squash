@@ -214,3 +214,233 @@
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyniki Squasha</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e0f7fa, #80deea);
+            color: #004d40;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 10px;
+        }
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #004d40;
+            color: white;
+        }
+        button {
+            display: inline-block;
+            margin: 10px 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background-color: #004d40;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00695c;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .chart-container canvas {
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
+        }
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 12px;
+            }
+            button {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+            .chart-container canvas {
+                max-width: 90%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Śledzenie Wyników Squasha</h1>
+        <form>
+            <label for="date">Data:</label>
+            <input type="date" id="date">
+            <button type="button" id="addRowButton">Dodaj Wiersz</button>
+        </form>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Punkty Rafał</th>
+                    <th>Punkty Bartek</th>
+                    <th>Sety Rafał</th>
+                    <th>Sety Bartek</th>
+                    <th>Mecze Rafał</th>
+                    <th>Mecze Bartek</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dynamic rows -->
+            </tbody>
+        </table>
+
+        <button id="refreshButton">Odśwież Wykresy</button>
+        <button id="resetDataButton">Resetuj Dane</button>
+
+        <div class="chart-container">
+            <canvas id="pointsChart"></canvas>
+            <canvas id="cumulativePointsChart"></canvas>
+            <canvas id="setsChart"></canvas>
+            <canvas id="cumulativeSetsChart"></canvas>
+            <canvas id="matchesChart"></canvas>
+            <canvas id="cumulativeMatchesChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const resultsData = JSON.parse(localStorage.getItem('resultsData')) || {
+            Rafał: { points: [], sets: [], matches: [] },
+            Bartek: { points: [], sets: [], matches: [] }
+        };
+
+        const chartInstances = {};
+
+        document.getElementById('addRowButton').addEventListener('click', () => {
+            const date = document.getElementById('date').value;
+            if (!date) {
+                alert('Proszę wybrać datę.');
+                return;
+            }
+            addRow(date);
+            saveData();
+        });
+
+        document.getElementById('refreshButton').addEventListener('click', updateCharts);
+
+        document.getElementById('resetDataButton').addEventListener('click', () => {
+            const password = prompt('Podaj hasło, aby zresetować dane:');
+            if (password === 'W&W') {
+                localStorage.removeItem('resultsData');
+                location.reload();
+            } else {
+                alert('Niepoprawne hasło.');
+            }
+        });
+
+        function addRow(date) {
+            const table = document.getElementById('resultsTable').querySelector('tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${date}</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">0</td>
+            `;
+            table.appendChild(row);
+        }
+
+        function saveData() {
+            const tableRows = document.querySelectorAll('#resultsTable tbody tr');
+            const data = { Rafał: { points: [], sets: [], matches: [] }, Bartek: { points: [], sets: [], matches: [] } };
+
+            tableRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const date = cells[0].textContent;
+
+                ['points', 'sets', 'matches'].forEach((category, i) => {
+                    data.Rafał[category].push(parseInt(cells[1 + i * 2].textContent) || 0);
+                    data.Bartek[category].push(parseInt(cells[2 + i * 2].textContent) || 0);
+                });
+            });
+
+            localStorage.setItem('resultsData', JSON.stringify(data));
+        }
+
+        function updateCharts() {
+            const tableRows = document.querySelectorAll('#resultsTable tbody tr');
+            const labels = [];
+            const data = { Rafał: { points: [], sets: [], matches: [] }, Bartek: { points: [], sets: [], matches: [] } };
+
+            tableRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const date = cells[0].textContent;
+                labels.push(date);
+
+                ['points', 'sets', 'matches'].forEach((category, i) => {
+                    data.Rafał[category].push(parseInt(cells[1 + i * 2].textContent) || 0);
+                    data.Bartek[category].push(parseInt(cells[2 + i * 2].textContent) || 0);
+                });
+            });
+
+            Object.keys(chartInstances).forEach(chartId => {
+                const [player, category] = chartId.split('-');
+                chartInstances[chartId].data.labels = labels;
+                chartInstances[chartId].data.datasets[0].data = data[player][category];
+                chartInstances[chartId].update();
+            });
+
+            saveData();
+        }
+
+        function createChart(id, label, player, category) {
+            const ctx = document.getElementById(id).getContext('2d');
+            chartInstances[`${player}-${category}`] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: `${player} - ${label}`,
+                        data: [],
+                        borderColor: player === 'Rafał' ? 'blue' : 'red',
+                        backgroundColor: player === 'Rafał' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 
