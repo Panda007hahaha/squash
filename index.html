@@ -10,21 +10,21 @@
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: #fff;
+            background: #f9f9f9;
+            color: #333;
         }
         .container {
             width: 90%;
             max-width: 1200px;
             margin: 20px auto;
-            background: #1a1a1a;
+            background: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         h1 {
             text-align: center;
-            color: #ffcc00;
+            color: #444;
             text-transform: uppercase;
             margin-bottom: 20px;
         }
@@ -38,54 +38,55 @@
             padding: 10px;
             font-size: 16px;
             border-radius: 5px;
-            border: none;
+            border: 1px solid #ccc;
             margin-right: 10px;
         }
         form input {
             flex: 1;
         }
         form button {
-            background: #ffcc00;
-            color: #1a1a1a;
+            background: #007bff;
+            color: white;
             cursor: pointer;
             font-weight: bold;
         }
         form button:hover {
-            background: #e6b800;
+            background: #0056b3;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            background: #2a2a2a;
-            color: #fff;
+            background: #f9f9f9;
+            color: #333;
             overflow-x: auto;
             display: block;
             border-radius: 10px;
         }
         th, td {
-            border: 1px solid #444;
+            border: 1px solid #ddd;
             padding: 10px;
             text-align: center;
             font-size: 14px;
         }
         th {
-            background-color: #444;
+            background-color: #007bff;
+            color: white;
         }
         button {
             display: inline-block;
             margin: 10px 5px;
             padding: 10px 15px;
             font-size: 16px;
-            color: #1a1a1a;
-            background-color: #ffcc00;
+            color: white;
+            background-color: #007bff;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
         }
         button:hover {
-            background-color: #e6b800;
+            background-color: #0056b3;
         }
         .chart-container {
             display: flex;
@@ -257,4 +258,30 @@
                         label: `${player} - ${label}`,
                         data: [],
                         borderColor: player === 'Rafał' ? 'blue' : 'red',
-                        backgroundColor: player === 'Rafał' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 
+                        backgroundColor: player === 'Rafał' ? 'rgba(0, 0, 255, 0.1)' : 'rgba(255, 0, 0, 0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        ['points', 'sets', 'matches'].forEach(category => {
+            createChart(`${category}Chart`, category, 'Rafał', category);
+            createChart(`cumulative${capitalize(category)}Chart`, `Cumulative ${category}`, 'Bartek', category);
+        });
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
+</body>
+</html>
